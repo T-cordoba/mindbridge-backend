@@ -48,12 +48,19 @@ module.exports = (controller) => {
    * /journal/sessions:
    *   get:
    *     tags: [Journal]
-   *     summary: List all user sessions
+   *     summary: List all user sessions (paginated)
    *     security:
    *       - bearerAuth: []
+   *     parameters:
+   *       - in: query
+   *         name: page
+   *         schema: { type: integer, default: 1 }
+   *       - in: query
+   *         name: limit
+   *         schema: { type: integer, default: 10, maximum: 50 }
    *     responses:
    *       200:
-   *         description: Array of sessions
+   *         description: Paginated sessions with total and totalPages
    */
   router.get('/sessions', controller.list);
 

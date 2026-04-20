@@ -26,8 +26,10 @@ class JournalController {
 
   list = async (req, res, next) => {
     try {
-      const sessions = await this._getSessions.execute({ userId: req.user.id });
-      res.json({ sessions });
+      const page  = Math.max(1, parseInt(req.query.page,  10) || 1);
+      const limit = Math.min(50, Math.max(1, parseInt(req.query.limit, 10) || 10));
+      const result = await this._getSessions.execute({ userId: req.user.id, page, limit });
+      res.json(result);
     } catch (err) {
       next(err);
     }

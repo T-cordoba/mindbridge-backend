@@ -27,12 +27,18 @@ class PostgresSessionRepository extends ISessionRepository {
     return this._map(rows[0]);
   }
 
-  async findByUserId(userId) {
-    const { rows } = await this.pool.query(
-      'SELECT * FROM sessions WHERE user_id = $1 ORDER BY updated_at DESC',
+  async findByUserId(userId, { limit = 10, offset = 0 } = {}) {
+    const { rows: countRows } = await this.pool.query(
+      'SELECT COUNT(*) FROM sessions WHERE user_id = $1',
       [userId]
     );
-    return rows.map(this._map);
+    const total = parseInt(countRows[0].count, 10);
+
+    const { rows } = await this.pool.query(
+      'SELECT * FROM sessions WHERE user_id = $1 ORDER BY updated_at DESC LIMIT $2 OFFSET $3',
+      [userId, limit, offset]
+    );
+    return { sessions: rows.map((r) => this._map(r)), total };
   }
 
   async create({ userId, title }) {
