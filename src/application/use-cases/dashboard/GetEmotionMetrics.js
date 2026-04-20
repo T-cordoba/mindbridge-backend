@@ -5,7 +5,7 @@ class GetEmotionMetrics {
   }
 
   async execute({ userId, days = 30 }) {
-    const sessions = await this.sessionRepository.findByUserId(userId);
+    const { sessions } = await this.sessionRepository.findByUserId(userId, { limit: 1000, offset: 0 });
     if (sessions.length === 0) return { emotions: [], alertTrend: [], totalSessions: 0 };
 
     const sessionIds = sessions.map((s) => s.id);
