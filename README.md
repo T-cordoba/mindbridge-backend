@@ -39,6 +39,7 @@ PORT=4000
 DB_HOST=localhost
 DB_PORT=5432
 DB_NAME=mindbridge
+DB_ADMIN_DATABASE=postgres
 DB_USER=postgres
 DB_PASSWORD=tu_password
 JWT_SECRET=tu_jwt_secret
