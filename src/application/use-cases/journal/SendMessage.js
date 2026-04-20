@@ -21,6 +21,7 @@ class SendMessage {
     const session = await this.sessionRepository.findById(sessionId);
     if (!session || session.userId !== userId) throw new Error('Session not found');
     if (session.isBlocked) throw new Error('Session is locked due to crisis detection');
+    const isFirstMessage = (session.messageCount ?? 0) === 0;
 
     const allMessages = await this.messageRepository.findBySessionId(sessionId);
     const recentMessages = allMessages.slice(-CONTEXT_WINDOW);
@@ -68,7 +69,20 @@ class SendMessage {
       setImmediate(() => this._compressContext(sessionId, oldMessages));
     }
 
-    return { userMessage, assistantMessage, alertLevel, isBlocked: blocked };
+    let generatedTitle;
+    if (isFirstMessage) {
+      try {
+        const title = await this.aiService.generateTitle(content);
+        if (title) {
+          await this.sessionRepository.update(sessionId, { title });
+          generatedTitle = title;
+        }
+      } catch (err) {
+        console.error('[SendMessage] Title generation failed:', err.message);
+      }
+    }
+
+    return { userMessage, assistantMessage, alertLevel, isBlocked: blocked, ...(generatedTitle ? { generatedTitle } : {}) };
   }
 
   async _compressContext(sessionId, oldMessages) {

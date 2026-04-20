@@ -44,12 +44,18 @@ class JournalController {
 
   send = async (req, res, next) => {
     try {
-      const result = await this._sendMessage.execute({
+      const { userMessage, assistantMessage, alertLevel, isBlocked, generatedTitle } = await this._sendMessage.execute({
         sessionId: req.params.id,
         userId: req.user.id,
         content: req.body.content,
       });
-      res.json(result);
+      res.json({
+        userMessage,
+        assistantMessage,
+        alertLevel,
+        isBlocked,
+        ...(generatedTitle ? { generatedTitle } : {}),
+      });
     } catch (err) {
       next(err);
     }

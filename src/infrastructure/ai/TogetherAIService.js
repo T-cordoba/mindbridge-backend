@@ -111,6 +111,13 @@ class TogetherAIService {
     };
   }
 
+  async generateTitle(userContent) {
+    const prompt = `Genera un título breve (máximo 5 palabras) en español que resuma el tema principal de este mensaje de diario emocional. Responde solo con el título, sin comillas ni puntuación extra.\n\nMensaje del usuario: "${userContent}"`;
+    const messages = [{ role: 'user', content: prompt }];
+    const title = await this._request(messages, { jsonMode: false, maxTokens: 500, temperature: 0.7 });
+    return title.trim();
+  }
+
   async summarize(messages) {
     const conversation = messages
       .map((m) => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`)
