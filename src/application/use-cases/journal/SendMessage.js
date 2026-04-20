@@ -26,10 +26,14 @@ class SendMessage {
     const allMessages = await this.messageRepository.findBySessionId(sessionId);
     const recentMessages = allMessages.slice(-CONTEXT_WINDOW);
 
+    const lastAssistantMsg = [...allMessages].reverse().find((m) => m.role === 'assistant');
+    const currentAnimo = lastAssistantMsg?.moodData ?? null;
+
     const aiResponse = await this.aiService.chat({
       summary: session.summary,
       messages: recentMessages,
       userInput: content,
+      currentAnimo,
     });
 
     const alertLevel = clamp(aiResponse.alerta ?? 0);

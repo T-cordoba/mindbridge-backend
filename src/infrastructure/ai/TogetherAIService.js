@@ -128,13 +128,21 @@ class TogetherAIService {
     return content;
   }
 
-  _buildMessages(summary, history, userInput) {
+  _buildMessages(summary, history, userInput, currentAnimo) {
     const messages = [{ role: 'system', content: SYSTEM_PROMPT }];
 
     if (summary) {
       messages.push({
         role: 'system',
         content: `[CONVERSATION SUMMARY]: ${summary}`,
+      });
+    }
+
+    if (currentAnimo && currentAnimo.length > 0) {
+      const animoStr = currentAnimo.map(([e, i]) => `${e}: ${i}`).join(', ');
+      messages.push({
+        role: 'system',
+        content: `[CURRENT EMOTIONAL PORTRAIT]: ${animoStr}. This is the exact emotional baseline from the previous exchange. You MUST apply emotional inertia from these values — shift each emotion by ±2 maximum per exchange unless the user makes an explicit, dramatic emotional statement. Do not reset emotions that are not explicitly resolved.`,
       });
     }
 
@@ -146,22 +154,19 @@ class TogetherAIService {
     return messages;
   }
 
-  async chat({ summary, messages, userInput }) {
-    const builtMessages = this._buildMessages(summary, messages, userInput);
-    const raw = await this._request(builtMessages, { jsonMode: true, maxTokens: 1500 });
-
+  _parseChat(raw) {
     let parsed;
     try {
       parsed = JSON.parse(raw);
     } catch {
-      console.error('[AI] Failed to parse JSON from model output:', raw);
-      throw new Error('AI returned invalid JSON response');
+      return null;
     }
 
-    if (!parsed.respuesta) {
-      console.error('[AI] Missing "respuesta" field in parsed response:', parsed);
-      throw new Error('AI response missing required "respuesta" field');
-    }
+    if (!parsed.respuesta || typeof parsed.respuesta !== 'string') return null;
+
+    const isCrisis = parsed.respuesta.trim() === 'CRISIS_DETECTED';
+    const isPlaceholder = !isCrisis && parsed.respuesta.trim().length < 10;
+    if (isPlaceholder) return null;
 
     return {
       respuesta: parsed.respuesta,
@@ -170,10 +175,33 @@ class TogetherAIService {
     };
   }
 
+  async chat({ summary, messages, userInput, currentAnimo }) {
+    const builtMessages = this._buildMessages(summary, messages, userInput, currentAnimo);
+    const MAX_CHAT_ATTEMPTS = 3;
+
+    for (let attempt = 1; attempt <= MAX_CHAT_ATTEMPTS; attempt++) {
+      const raw = await this._request(builtMessages, { jsonMode: true, maxTokens: 1500 });
+      const result = this._parseChat(raw);
+
+      if (result) return result;
+
+      console.warn(`[AI] chat() attempt ${attempt} produced an invalid or placeholder response — ${attempt < MAX_CHAT_ATTEMPTS ? 'retrying' : 'using safe fallback'}`);
+      if (attempt < MAX_CHAT_ATTEMPTS) await sleep(1000 * attempt);
+    }
+
+    // All retries exhausted — return a safe hardcoded response so the user is never left stranded
+    console.error('[AI] All chat() attempts failed. Returning safe fallback response.');
+    return {
+      respuesta: 'Estoy aquí contigo y lo que describes suena muy serio. No tienes que enfrentar esto solo/a — hay personas preparadas para ayudarte de verdad. En la sección "Red de apoyo" en la barra de navegación superior puedes encontrar contacto con profesionales de salud mental. ¿Puedes contarme un poco más sobre cómo te sientes ahora mismo?',
+      animo: [['fear', 6], ['sadness', 6], ['anxiety', 5]],
+      alerta: 4,
+    };
+  }
+
   async generateTitle(userContent) {
     const prompt = `Genera un título breve (máximo 5 palabras) en español que resuma el tema principal de este mensaje de diario emocional. Responde solo con el título, sin comillas ni puntuación extra.\n\nMensaje del usuario: "${userContent}"`;
     const messages = [{ role: 'user', content: prompt }];
-    const title = await this._request(messages, { jsonMode: false, maxTokens: 500, temperature: 0.7 });
+    const title = await this._request(messages, { jsonMode: false, maxTokens: 1000, temperature: 0.7 });
     return title.trim();
   }
 
