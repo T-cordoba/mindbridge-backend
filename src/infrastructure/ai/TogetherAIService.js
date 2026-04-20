@@ -2,8 +2,67 @@ const { SYSTEM_PROMPT, COMPRESSION_PROMPT } = require('./prompts');
 
 const MAX_RETRIES = 2;
 const RETRY_DELAY_MS = 1500;
+const LOG_CONTENT_PREVIEW = 220;
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+function truncateText(value, maxLength = LOG_CONTENT_PREVIEW) {
+  if (typeof value !== 'string') return value;
+  const normalized = value.replace(/\s+/g, ' ').trim();
+  if (normalized.length <= maxLength) return normalized;
+  return `${normalized.slice(0, maxLength)}...`;
+}
+
+function safeJsonParse(value) {
+  try {
+    return JSON.parse(value);
+  } catch {
+    return null;
+  }
+}
+
+function cleanRequestPayload(payload) {
+  return {
+    model: payload.model,
+    max_tokens: payload.max_tokens,
+    temperature: payload.temperature,
+    response_format: payload.response_format,
+    messages: Array.isArray(payload.messages)
+      ? payload.messages.map((message, index) => ({
+          index,
+          role: message.role,
+          content: truncateText(message.content),
+        }))
+      : [],
+  };
+}
+
+function cleanApiResponse(status, ok, rawBody) {
+  const parsed = safeJsonParse(rawBody);
+  if (!parsed) {
+    return {
+      status,
+      ok,
+      body: truncateText(rawBody, 500),
+    };
+  }
+
+  return {
+    status,
+    ok,
+    id: parsed.id,
+    model: parsed.model,
+    usage: parsed.usage,
+    choices: Array.isArray(parsed.choices)
+      ? parsed.choices.map((choice, index) => ({
+          index,
+          finish_reason: choice.finish_reason,
+          role: choice.message?.role,
+          content: truncateText(choice.message?.content),
+        }))
+      : [],
+  };
+}
 
 class TogetherAIService {
   constructor() {
@@ -21,10 +80,11 @@ class TogetherAIService {
       response_format: options.jsonMode ? { type: 'json_object' } : undefined,
     };
 
-    console.log(`[AI] Request attempt ${attempt} — ${messages.length} messages, jsonMode=${!!options.jsonMode}`);
-    if (process.env.NODE_ENV === 'development') {
-      console.log('[AI] Payload:', JSON.stringify(payload, null, 2));
-    }
+    console.log('[AI] Peticion del back:', JSON.stringify({
+      attempt,
+      jsonMode: !!options.jsonMode,
+      payload: cleanRequestPayload(payload),
+    }, null, 2));
 
     const response = await fetch(this.baseUrl, {
       method: 'POST',
@@ -36,8 +96,7 @@ class TogetherAIService {
     });
 
     const rawBody = await response.text();
-    console.log(`[AI] Response status: ${response.status}`);
-    console.log('[AI] Response body:', rawBody);
+    console.log('[AI] Respuesta de la api:', JSON.stringify(cleanApiResponse(response.status, response.ok, rawBody), null, 2));
 
     if (!response.ok) {
       // Retry on 503/429
