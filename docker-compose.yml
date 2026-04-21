@@ -19,6 +19,7 @@ services:
       start_period: 10s
 
   backend:
+    image: tcordoba24/mindbridge-backend:latest
     build:
       context: .
     container_name: mindbridge_backend
@@ -35,6 +36,7 @@ services:
       - "4000:4000"
 
   frontend:
+    image: tcordoba24/mindbridge-frontend:latest
     build:
       context: ../mindbridge-frontend
     container_name: mindbridge_frontend

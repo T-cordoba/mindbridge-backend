@@ -39,18 +39,27 @@ A diferencia de un chat genérico, MindBridge actúa como un espejo: devuelve al
 
 **Backend (este repositorio)**
 
-- Node.js + Express (CommonJS, sin build step)
-- PostgreSQL via `pg`
-- JWT (`jsonwebtoken`) — sin sesión, sin refresh token
+- Node.js 20 + Express 4 (CommonJS, sin build step)
+- PostgreSQL 16 via `pg` 8
+- JWT (`jsonwebtoken` 9) — sin sesión, sin refresh token
 - Together AI — modelo `openai/gpt-oss-20b` vía API
-- Swagger UI en `/api/docs`
+- Swagger UI en `/api/docs` (`swagger-jsdoc` 6 + `swagger-ui-express` 5)
 - Clean Architecture: `domain` → `application` → `infrastructure` → `interfaces`
 
 **Frontend** — [mindbridge-frontend](https://github.com/T-cordoba/mindbridge-frontend)
 
 - Next.js 15, App Router, TypeScript
-- Tailwind CSS con design system por variables CSS
+- Tailwind CSS v3 con design system por variables CSS
 - Recharts para el dashboard
+
+---
+
+## Imágenes en Docker Hub
+
+| Servicio | Imagen |
+|----------|--------|
+| Backend | [`tcordoba24/mindbridge-backend`](https://hub.docker.com/r/tcordoba24/mindbridge-backend) |
+| Frontend | [`tcordoba24/mindbridge-frontend`](https://hub.docker.com/r/tcordoba24/mindbridge-frontend) |
 
 ---
 
@@ -61,25 +70,25 @@ A diferencia de un chat genérico, MindBridge actúa como un espejo: devuelve al
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) instalado y corriendo
 - Una cuenta en [Together AI](https://www.together.ai/) para obtener el API key
 
-### 1. Clonar los repositorios
+El `docker-compose.yml` usa las imágenes publicadas en Docker Hub (`tcordoba24/mindbridge-backend` y `tcordoba24/mindbridge-frontend`), por lo que Docker las descargará automáticamente al levantar los servicios. Si prefieres buildear desde el código fuente, clona ambos repos en la misma carpeta padre y usa `docker compose up --build`.
 
-Ambos repositorios deben estar **en la misma carpeta padre**:
+### 1. Clonar el repositorio
 
 ```bash
-# Clonar el backend
 git clone https://github.com/T-cordoba/mindbridge-backend
-
-# Clonar el frontend (si no lo tienes)
-git clone https://github.com/T-cordoba/mindbridge-frontend
+cd mindbridge-backend
 ```
 
-La estructura debe quedar así:
-
-```
-carpeta-padre/
-├── mindbridge-backend/
-└── mindbridge-frontend/
-```
+> Si vas a buildear desde código fuente, clona también el frontend en la misma carpeta padre:
+> ```bash
+> git clone https://github.com/T-cordoba/mindbridge-frontend
+> ```
+> La estructura debe quedar:
+> ```
+> carpeta-padre/
+> ├── mindbridge-backend/
+> └── mindbridge-frontend/
+> ```
 
 ### 2. Configurar variables de entorno
 
@@ -123,6 +132,10 @@ CONTEXT_WINDOW=10
 Desde la carpeta `mindbridge-backend/`:
 
 ```bash
+# Con imágenes de Docker Hub (recomendado — no requiere tener el código del frontend)
+docker compose up
+
+# O buildeando desde código fuente local
 docker compose up --build
 ```
 
