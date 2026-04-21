@@ -54,7 +54,7 @@ A diferencia de un chat genérico, MindBridge actúa como un espejo: devuelve al
 
 ---
 
-## Ejecución con Docker (recomendado)
+## Ejecución con Docker
 
 ### Prerequisitos
 
@@ -151,3 +151,9 @@ Para detener y eliminar los datos de la base de datos:
 ```bash
 docker compose down -v
 ```
+
+---
+
+## Aviso de seguridad
+
+MindBridge aplica detección de crisis y bloqueo de sesión ante riesgo severo. **No sustituye la atención psicológica profesional.** Ante una emergencia de salud mental, contacta a un profesional o llama a una línea de crisis.
