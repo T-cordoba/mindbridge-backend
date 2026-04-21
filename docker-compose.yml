@@ -4,13 +4,19 @@ services:
     container_name: mindbridge_db
     restart: always
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: 4kt!
-      POSTGRES_DB: mindbridge
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
 
   backend:
     build:
@@ -18,22 +24,13 @@ services:
     container_name: mindbridge_backend
     restart: always
     depends_on:
-      - db
+      db:
+        condition: service_healthy
+    env_file: .env
     environment:
-      PORT: 4000
-      NODE_ENV: production
       DB_HOST: db
-      DB_PORT: 5432
-      DB_NAME: mindbridge
-      DB_ADMIN_DATABASE: postgres
-      DB_USER: postgres
-      DB_PASSWORD: 4kt!
-      JWT_SECRET: C9859DF38BF984FA2363AAEB92B7C0BC6F45BAD0036C750889EC302B6CD15826750F4AB43615DFC343BB2573D2A4148581E9A6421E619EA64099AABD6AC97967
-      JWT_EXPIRES_IN: 7d
-      TOGETHER_API_KEY: tgp_v1_C6WtuxV0MInPLodeNWJVbhF20Z8JDDWmp7oFt3ypezA
-      TOGETHER_MODEL: openai/gpt-oss-20b
-      COMPRESSION_THRESHOLD: 20
-      CONTEXT_WINDOW: 10
+      NODE_ENV: production
+    command: sh -c "npm run migrate && npm start"
     ports:
       - "4000:4000"
 
