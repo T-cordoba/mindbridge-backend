@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const pool = require('./infrastructure/database/connection');
-const TogetherAIService = require('./infrastructure/ai/TogetherAIService');
+const NvidiaAIService = require('./infrastructure/ai/NvidiaAIService');
 const PostgresUserRepository = require('./infrastructure/database/repositories/PostgresUserRepository');
 const PostgresSessionRepository = require('./infrastructure/database/repositories/PostgresSessionRepository');
 const PostgresMessageRepository = require('./infrastructure/database/repositories/PostgresMessageRepository');
@@ -29,7 +29,7 @@ const messageRepo = new PostgresMessageRepository(pool);
 const psychologistRepo = new PostgresPsychologistRepository(pool);
 
 // Services
-const aiService = new TogetherAIService();
+const aiService = new NvidiaAIService();
 
 // Controllers
 const authController = new AuthController(userRepo);
