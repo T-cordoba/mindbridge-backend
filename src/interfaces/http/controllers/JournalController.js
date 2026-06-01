@@ -63,6 +63,37 @@ class JournalController {
     }
   };
 
+  sendStream = async (req, res, next) => {
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
+    res.flushHeaders();
+
+    const abort = new AbortController();
+    req.on('close', () => abort.abort());
+
+    const emit = (event, data) => {
+      if (!res.writableEnded) res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+    };
+
+    try {
+      const result = await this._sendMessage.executeStream({
+        sessionId: req.params.id,
+        userId: req.user.id,
+        content: req.body.content,
+        onReasoning: (chunk) => emit('reasoning', { chunk }),
+        onText: (chunk) => emit('text', { chunk }),
+        signal: abort.signal,
+      });
+      emit('done', result);
+    } catch (err) {
+      emit('error', { message: err.message });
+    } finally {
+      if (!res.writableEnded) res.end();
+    }
+  };
+
   remove = async (req, res, next) => {
     try {
       await this._deleteSession.execute({ sessionId: req.params.id, userId: req.user.id });

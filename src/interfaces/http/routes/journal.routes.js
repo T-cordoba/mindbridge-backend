@@ -114,6 +114,7 @@ module.exports = (controller) => {
    *         description: Session locked (crisis)
    */
   router.post('/sessions/:id/messages', messageValidation, validate, controller.send);
+  router.post('/sessions/:id/messages/stream', messageValidation, validate, controller.sendStream);
 
   /**
    * @swagger
