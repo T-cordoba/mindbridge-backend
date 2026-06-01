@@ -1,4 +1,4 @@
-const { SYSTEM_PROMPT } = require('./prompts');
+const { SYSTEM_PROMPT, COMPRESSION_PROMPT } = require('./prompts');
 
 // Used by the non-streaming chat() fallback to enforce structured output
 const CHAT_TOOL = {
@@ -186,8 +186,12 @@ class NvidiaAIService {
     return data;
   }
 
-  _buildMessages(history, userInput, currentAnimo) {
+  _buildMessages(history, userInput, currentAnimo, priorContext) {
     const messages = [{ role: 'system', content: SYSTEM_PROMPT }];
+
+    if (priorContext) {
+      messages.push({ role: 'system', content: priorContext });
+    }
 
     if (currentAnimo && currentAnimo.length > 0) {
       const animoStr = currentAnimo.map(([e, i]) => `${e}: ${i}`).join(', ');
@@ -209,8 +213,8 @@ class NvidiaAIService {
   }
 
   // Non-streaming fallback — used for retries when stream fails
-  async chat({ messages, userInput, currentAnimo }) {
-    const builtMessages = this._buildMessages(messages, userInput, currentAnimo);
+  async chat({ messages, userInput, currentAnimo, priorContext }) {
+    const builtMessages = this._buildMessages(messages, userInput, currentAnimo, priorContext);
     const MAX_ATTEMPTS = 3;
 
     for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
@@ -273,8 +277,8 @@ class NvidiaAIService {
   }
 
   // Streaming — native thinking via delta.reasoning_content, JSON response via delta.content
-  async chatStream({ messages, userInput, currentAnimo, onReasoning, onText, signal }) {
-    const builtMessages = this._buildMessages(messages, userInput, currentAnimo);
+  async chatStream({ messages, userInput, currentAnimo, priorContext, onReasoning, onText, signal }) {
+    const builtMessages = this._buildMessages(messages, userInput, currentAnimo, priorContext);
     const decoder = new TextDecoder();
     const streamer = new ResponseStreamer(onText);
     let fullContent = '';
@@ -346,6 +350,22 @@ class NvidiaAIService {
       animo: applyEmotionalInertia(currentAnimo, rawAnimo),
       alerta: typeof parsed.alerta === 'number' ? parsed.alerta : 0,
     };
+  }
+
+  async generateSummary(messages) {
+    const conversation = messages
+      .map((m) => `${m.role === 'user' ? 'User' : 'MindBridge'}: ${m.content}`)
+      .join('\n');
+
+    const requestMessages = [{
+      role: 'user',
+      content: `${COMPRESSION_PROMPT}\n\n${conversation}`,
+    }];
+
+    const data = await this._request(requestMessages, { temperature: 0.5, noThinking: true });
+    const content = data.choices?.[0]?.message?.content;
+    if (!content) throw new Error('Empty summary response from NVIDIA API');
+    return content.trim();
   }
 
   async generateTitle(userContent) {

@@ -27,6 +27,16 @@ class PostgresSessionRepository extends ISessionRepository {
     return this._map(rows[0]);
   }
 
+  async findLastCompletedByUserId(userId, excludeSessionId) {
+    const { rows } = await this.pool.query(
+      `SELECT * FROM sessions
+       WHERE user_id = $1 AND id != $2 AND message_count > 0
+       ORDER BY updated_at DESC LIMIT 1`,
+      [userId, excludeSessionId]
+    );
+    return this._map(rows[0]);
+  }
+
   async findByUserId(userId, { limit = 10, offset = 0 } = {}) {
     const { rows: countRows } = await this.pool.query(
       'SELECT COUNT(*) FROM sessions WHERE user_id = $1',

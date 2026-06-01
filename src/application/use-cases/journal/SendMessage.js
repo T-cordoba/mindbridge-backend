@@ -2,12 +2,41 @@ const { sanitizeAnimo } = require('../../../domain/value-objects/Emotion');
 const { isCrisis, clamp } = require('../../../domain/value-objects/AlertLevel');
 
 const MAX_MESSAGE_LENGTH = 600;
+const SUMMARY_MIN_MESSAGES = 6;
 
 class SendMessage {
   constructor(sessionRepository, messageRepository, aiService) {
     this.sessionRepository = sessionRepository;
     this.messageRepository = messageRepository;
     this.aiService = aiService;
+  }
+
+  _buildPriorContext(summary, moodData) {
+    let ctx = `[PRIOR SESSION CONTEXT]: ${summary}`;
+    if (Array.isArray(moodData) && moodData.length > 0) {
+      const stateStr = moodData.map(([e, i]) => `${e}: ${i}`).join(', ');
+      ctx += `\n[PRIOR EMOTIONAL STATE]: ${stateStr}`;
+    }
+    return ctx;
+  }
+
+  async _fetchPriorContext(userId, sessionId) {
+    try {
+      const priorSession = await this.sessionRepository.findLastCompletedByUserId(userId, sessionId);
+      if (!priorSession?.summary) return null;
+      const priorMessages = await this.messageRepository.findBySessionId(priorSession.id);
+      const lastAssistant = [...priorMessages].reverse().find((m) => m.role === 'assistant');
+      return this._buildPriorContext(priorSession.summary, lastAssistant?.moodData);
+    } catch (err) {
+      console.error('[SendMessage] Failed to fetch prior context:', err.message);
+      return null;
+    }
+  }
+
+  _generateSummaryAsync(sessionId, messages) {
+    this.aiService.generateSummary(messages)
+      .then((summary) => this.sessionRepository.update(sessionId, { summary }))
+      .catch((err) => console.error('[SendMessage] Background summary failed:', err.message));
   }
 
   async execute({ sessionId, userId, content }) {
@@ -25,7 +54,9 @@ class SendMessage {
     const lastAssistantMsg = [...allMessages].reverse().find((m) => m.role === 'assistant');
     const currentAnimo = lastAssistantMsg?.moodData ?? null;
 
-    const aiResponse = await this.aiService.chat({ messages: allMessages, userInput: content, currentAnimo });
+    const priorContext = isFirstMessage ? await this._fetchPriorContext(userId, sessionId) : null;
+
+    const aiResponse = await this.aiService.chat({ messages: allMessages, userInput: content, currentAnimo, priorContext });
 
     const alertLevel = clamp(aiResponse.alerta ?? 0);
     const moodData = sanitizeAnimo(aiResponse.animo);
@@ -45,6 +76,10 @@ class SendMessage {
     await this.sessionRepository.update(sessionId, {
       messageCount: newCount, maxAlertLevel: maxAlert, isBlocked: blocked,
     });
+
+    if (newCount >= SUMMARY_MIN_MESSAGES && !session.summary) {
+      this._generateSummaryAsync(sessionId, [...allMessages, userMessage, assistantMessage]);
+    }
 
     let generatedTitle;
     if (isFirstMessage) {
@@ -74,8 +109,10 @@ class SendMessage {
     const lastAssistantMsg = [...allMessages].reverse().find((m) => m.role === 'assistant');
     const currentAnimo = lastAssistantMsg?.moodData ?? null;
 
+    const priorContext = isFirstMessage ? await this._fetchPriorContext(userId, sessionId) : null;
+
     const aiResponse = await this.aiService.chatStream({
-      messages: allMessages, userInput: content, currentAnimo, onReasoning, onText, signal,
+      messages: allMessages, userInput: content, currentAnimo, priorContext, onReasoning, onText, signal,
     });
 
     const alertLevel = clamp(aiResponse.alerta ?? 0);
@@ -96,6 +133,10 @@ class SendMessage {
     await this.sessionRepository.update(sessionId, {
       messageCount: newCount, maxAlertLevel: maxAlert, isBlocked: blocked,
     });
+
+    if (newCount >= SUMMARY_MIN_MESSAGES && !session.summary) {
+      this._generateSummaryAsync(sessionId, [...allMessages, userMessage, assistantMessage]);
+    }
 
     let generatedTitle;
     if (isFirstMessage) {
