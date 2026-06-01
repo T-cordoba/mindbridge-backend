@@ -26,8 +26,8 @@ A diferencia de un chat genérico, MindBridge actúa como un espejo: devuelve al
 
 | Módulo | Descripción |
 |--------|-------------|
-| **Diario con IA** | Chat reflexivo entrenado para hacer preguntas que profundizan la introspección, sin dar consejos clínicos. Genera un título automático para cada sesión. |
-| **Retrato emocional** | Cada respuesta de la IA actualiza un estado emocional acumulativo (no por mensaje individual), con inercia para reflejar la evolución real del estado de ánimo. |
+| **Diario con IA** | Chat reflexivo con streaming en tiempo real (Kimi K2.6 + reasoning nativo). Hace preguntas que profundizan la introspección, sin dar consejos clínicos. Genera un título automático para cada sesión. |
+| **Retrato emocional** | Cada respuesta de la IA actualiza un estado emocional acumulativo (no por mensaje individual), con inercia matemática (±2 máx. por intercambio) para reflejar la evolución real del estado de ánimo. |
 | **Dashboard emocional** | Visualización de emociones promedio, frecuencia y tendencia de alertas en los últimos 30 días. |
 | **Protocolo de crisis** | Detección automática de riesgo (escala 0–5). En nivel 5, el chat se bloquea y se despliega un aviso de crisis con recursos de ayuda. En niveles 3–4, la IA incluye recordatorios de que es una IA y guía al usuario a la Red de Apoyo. |
 | **Red de apoyo** | Directorio de psicólogos para conectar al usuario con profesionales cuando lo necesita. |
@@ -42,7 +42,7 @@ A diferencia de un chat genérico, MindBridge actúa como un espejo: devuelve al
 - Node.js 20 + Express 4 (CommonJS, sin build step)
 - PostgreSQL 16 via `pg` 8
 - JWT (`jsonwebtoken` 9) — sin sesión, sin refresh token
-- Together AI — modelo `openai/gpt-oss-20b` vía API
+- NVIDIA NIM — modelo `moonshotai/kimi-k2.6` (Kimi K2.6, 1T params / 32B activos, MoE) vía API con streaming nativo y reasoning
 - Swagger UI en `/api/docs` (`swagger-jsdoc` 6 + `swagger-ui-express` 5)
 - Clean Architecture: `domain` → `application` → `infrastructure` → `interfaces`
 
@@ -68,7 +68,7 @@ A diferencia de un chat genérico, MindBridge actúa como un espejo: devuelve al
 ### Prerequisitos
 
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) instalado y corriendo
-- Una cuenta en [Together AI](https://www.together.ai/) para obtener el API key
+- Una cuenta en [NVIDIA NIM](https://build.nvidia.com/) para obtener el API key
 
 El `docker-compose.yml` usa las imágenes publicadas en Docker Hub (`tcordoba24/mindbridge-backend` y `tcordoba24/mindbridge-frontend`), por lo que Docker las descargará automáticamente al levantar los servicios. Si prefieres buildear desde el código fuente, clona ambos repos en la misma carpeta padre y usa `docker compose up --build`.
 
@@ -112,17 +112,13 @@ DB_PORT=5432
 JWT_SECRET=un_string_secreto_largo_y_aleatorio
 JWT_EXPIRES_IN=7d
 
-# Together AI — obtén tu key en https://www.together.ai/
-TOGETHER_API_KEY=tu_api_key_aqui
-TOGETHER_MODEL=openai/gpt-oss-20b
+# NVIDIA NIM — obtén tu key en https://build.nvidia.com/
+NVIDIA_API_KEY=tu_api_key_aqui
+NVIDIA_MODEL=moonshotai/kimi-k2.6
 
 # Configuración del servidor
 PORT=4000
 NODE_ENV=production
-
-# Parámetros de la IA (valores recomendados)
-COMPRESSION_THRESHOLD=20
-CONTEXT_WINDOW=10
 ```
 
 > **Nota sobre `DB_PASSWORD`:** Al correr con Docker, se crea una instancia nueva de PostgreSQL con la contraseña que definas aquí. Puedes poner cualquier valor — no necesitas tener PostgreSQL instalado localmente.
