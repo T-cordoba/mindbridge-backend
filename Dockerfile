@@ -20,4 +20,4 @@ COPY --from=builder /app/dist ./dist
 
 EXPOSE 4000
 
-CMD ["sh", "-c", "npm run migrate && npm start"]
+CMD ["npm", "start"]
