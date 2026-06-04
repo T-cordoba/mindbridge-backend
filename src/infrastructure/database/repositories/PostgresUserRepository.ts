@@ -16,6 +16,7 @@ export class PostgresUserRepository extends IUserRepository {
       name: row.name as string | null,
       disclaimerAccepted: row.disclaimer_accepted as boolean,
       role: (row.role as string) || 'user',
+      avatarUrl: (row.avatar_url as string) || null,
       createdAt: row.created_at as Date,
       updatedAt: row.updated_at as Date,
     });
@@ -60,8 +61,10 @@ export class PostgresUserRepository extends IUserRepository {
     const values: unknown[] = [];
     let i = 1;
     if (updates.name !== undefined) { fields.push(`name = $${i++}`); values.push(updates.name); }
+    if (updates.email !== undefined) { fields.push(`email = $${i++}`); values.push(updates.email); }
     if (updates.disclaimerAccepted !== undefined) { fields.push(`disclaimer_accepted = $${i++}`); values.push(updates.disclaimerAccepted); }
     if (updates.role !== undefined) { fields.push(`role = $${i++}`); values.push(updates.role); }
+    if (updates.avatarUrl !== undefined) { fields.push(`avatar_url = $${i++}`); values.push(updates.avatarUrl); }
     if (!fields.length) return this.findById(id);
     fields.push(`updated_at = NOW()`);
     values.push(id);

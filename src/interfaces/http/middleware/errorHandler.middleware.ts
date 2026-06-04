@@ -10,6 +10,8 @@ const knownErrors: Record<string, number> = {
   'Disclaimer must be accepted to use the journal': 400,
   'Session title cannot be empty': 400,
   'Session title exceeds maximum length of 200 characters': 400,
+  'Email already in use': 409,
+  'No fields to update': 400,
 };
 
 export const errorHandler = (err: Error, _req: Request, res: Response, _next: NextFunction): void => {

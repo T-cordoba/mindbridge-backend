@@ -10,8 +10,10 @@ export interface CreateUserData {
 
 export interface UpdateUserData {
   name?: string;
+  email?: string;
   disclaimerAccepted?: boolean;
   role?: string;
+  avatarUrl?: string | null;
 }
 
 export interface PaginatedUsers {
