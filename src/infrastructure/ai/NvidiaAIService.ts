@@ -82,6 +82,18 @@ function truncateText(value: unknown, maxLength = LOG_PREVIEW): unknown {
   return normalized.length <= maxLength ? normalized : `${normalized.slice(0, maxLength)}...`;
 }
 
+function extractTitle(raw: string): string {
+  // Strip <think>...</think> blocks some models emit even with thinking disabled
+  let clean = raw.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+  // Strip leading model artifacts like "-shared-"
+  clean = clean.replace(/^[-\s]*shared[-\s]*/i, '').trim();
+  // If the model reasoned inline (multi-line), take the last short non-empty line
+  const lines = clean.split('\n').map((l) => l.trim()).filter(Boolean);
+  const shortLine = [...lines].reverse().find((l) => l.length <= 60);
+  const title = lines.length > 1 ? (shortLine ?? lines[lines.length - 1]) : clean;
+  return title.slice(0, 100);
+}
+
 function applyEmotionalInertia(
   previousAnimo: [string, number][] | null,
   newAnimo: [string, number][]
@@ -448,7 +460,7 @@ export class NvidiaAIService {
     const choices = data.choices as Array<Record<string, unknown>>;
     const content = (choices?.[0]?.message as Record<string, unknown>)?.content as string;
     if (!content) throw new Error('Empty title response from NVIDIA API');
-    return content.trim().slice(0, 100);
+    return extractTitle(content);
   }
 }
 
