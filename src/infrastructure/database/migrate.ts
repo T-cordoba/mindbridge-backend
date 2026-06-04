@@ -9,6 +9,9 @@ function quoteIdentifier(identifier: string): string {
 }
 
 async function ensureDatabaseExists(): Promise<void> {
+  // Supabase / DATABASE_URL: DB already exists, skip creation step
+  if (process.env.DATABASE_URL) return;
+
   const targetDatabase = process.env.DB_NAME || 'mindbridge';
 
   const adminClient = new Client({
