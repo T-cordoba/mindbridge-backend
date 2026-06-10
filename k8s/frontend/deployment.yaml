@@ -1,6 +1,6 @@
 # BACKEND_INTERNAL_URL se evalua en build-time (queda fijo en routes-manifest.json de Next.js).
-# Buildear la imagen con:
-#   docker build --build-arg BACKEND_INTERNAL_URL=http://mindbridge-backend:4000 -t tcordoba24/mindbridge-frontend:latest .
+# La imagen se buildea y publica automaticamente via GitHub Actions (.github/workflows/ci.yml)
+# con --build-arg BACKEND_INTERNAL_URL=http://mindbridge-backend:4000
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -19,7 +19,7 @@ spec:
       containers:
         - name: frontend
           image: tcordoba24/mindbridge-frontend:latest
-          imagePullPolicy: Never
+          imagePullPolicy: Always
           ports:
             - containerPort: 3000
           readinessProbe:

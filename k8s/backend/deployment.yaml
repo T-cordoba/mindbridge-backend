@@ -16,7 +16,7 @@ spec:
       initContainers:
         - name: migrate
           image: tcordoba24/mindbridge-backend:latest
-          imagePullPolicy: Never
+          imagePullPolicy: Always
           command: ["npm", "run", "migrate"]
           envFrom:
             - secretRef:
@@ -24,7 +24,7 @@ spec:
       containers:
         - name: backend
           image: tcordoba24/mindbridge-backend:latest
-          imagePullPolicy: Never
+          imagePullPolicy: Always
           ports:
             - containerPort: 4000
           envFrom:
