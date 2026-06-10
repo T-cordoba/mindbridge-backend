@@ -166,3 +166,5 @@ docker compose down -v
 ## Aviso de seguridad
 
 MindBridge aplica detección de crisis y bloqueo de sesión ante riesgo severo. **No sustituye la atención psicológica profesional.** Ante una emergencia de salud mental, contacta a un profesional o llama a una línea de crisis.
+
+Cambio de prueba
