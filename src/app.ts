@@ -18,11 +18,13 @@ import marketplaceRoutes from './interfaces/http/routes/marketplace.routes';
 import adminRoutes from './interfaces/http/routes/admin.routes';
 import { errorHandler } from './interfaces/http/middleware/errorHandler.middleware';
 import { setup as setupSwagger } from './interfaces/docs/swagger';
+import { metricsMiddleware, register } from './interfaces/http/middleware/metrics.middleware';
 
 const app = express();
 
 app.use(cors({ origin: process.env.FRONTEND_URL || 'http://localhost:3000' }));
 app.use(express.json());
+app.use(metricsMiddleware);
 
 // Repositories
 const userRepo = new PostgresUserRepository(pool);
@@ -52,6 +54,12 @@ setupSwagger(app);
 
 // Health check
 app.get('/api/health', (_req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
+
+// Prometheus metrics
+app.get('/api/metrics', async (_req, res) => {
+  res.set('Content-Type', register.contentType);
+  res.end(await register.metrics());
+});
 
 // Error handler (must be last)
 app.use(errorHandler);

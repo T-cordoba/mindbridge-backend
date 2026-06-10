@@ -1,6 +1,6 @@
-# NEXT_PUBLIC_API_URL se embebe en el build de Next.js, no se puede inyectar en runtime.
-# Antes de construir la imagen del frontend ejecutar:
-#   docker build --build-arg NEXT_PUBLIC_API_URL=http://<MINIKUBE_IP>:30400/api -t tcordoba24/mindbridge-frontend:latest .
+# BACKEND_INTERNAL_URL se evalua en build-time (queda fijo en routes-manifest.json de Next.js).
+# Buildear la imagen con:
+#   docker build --build-arg BACKEND_INTERNAL_URL=http://mindbridge-backend:4000 -t tcordoba24/mindbridge-frontend:latest .
 apiVersion: apps/v1
 kind: Deployment
 metadata:
